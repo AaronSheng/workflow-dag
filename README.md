@@ -8,7 +8,10 @@ workflow-dag 用于解决任务调度中任务之间的依赖关系，通过DAG�
 
 # workflow-dag怎么设计？
 <img width="796" alt="image" src="https://github.com/AaronSheng/workflow-dag/blob/master/src/main/resources/domain.png">
-
+- DAG(流程): 有向无环图，负责描述有向无环图依赖关系；
+- Node(节点): 流程节点，负责描述单个节点；
+- Task(任务): 执行任务，负责任务实现；
+- DAGExecutor(执行器): DAG执行器，负责流程引擎执行。
 
 # workflow-data怎么使用？
 ```
