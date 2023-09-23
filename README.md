@@ -1,11 +1,14 @@
-# workflow-data是什么？
+# workflow-dag是什么？
 workflow-dag 是一个基于Java实现的DAG有向无环图。DAG有向无环图是一个特殊类型的图，它由一组节点和有向边组成。在DAG中，边具有特定的方向，表示节点之间的流动或关系。
+
 
 # workflow-dag能做什么？
 workflow-dag 用于解决任务调度中任务之间的依赖关系，通过DAG描述使得任务按照预期的顺序正确执行。
 
+
 # workflow-dag怎么设计？
 <img width="796" alt="image" src="https://github.com/AaronSheng/workflow-dag/blob/master/src/main/resources/domain.png">
+
 
 # workflow-data怎么使用？
 ```
