@@ -3,10 +3,20 @@ package com.x.workflow.task;
 import java.util.Map;
 
 public class TaskOutput {
+    private String taskId;
     private boolean succeed;
     private String message;
     private Exception exception;
     private Map<String, String> output;
+
+    public String getTaskId() {
+        return taskId;
+    }
+
+    public TaskOutput setTaskId(String taskId) {
+        this.taskId = taskId;
+        return this;
+    }
 
     public boolean isSucceed() {
         return succeed;

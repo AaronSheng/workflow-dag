@@ -9,10 +9,13 @@ import com.x.workflow.exec.ExecOutput;
 import com.x.workflow.task.Task;
 import com.x.workflow.task.TaskInput;
 import com.x.workflow.task.TaskOutput;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class Main {
     public static void main(String[] args) {
@@ -34,34 +37,52 @@ public class Main {
         Map<String, String> parameters = new HashMap<>();
         parameters.put("FlowID", graph.getId());
 
-        DAGExecutor<PrintTask> executor = new DAGExecutor<>(graph, parameters);
+        DAGExecutor<PrintTask> executor = new DAGExecutor<>(graph, parameters, 2);
         ExecOutput output = executor.execute();
         System.out.printf("Exec Flow:%s Succeed:%s\n",  output.getId(), output.isSucceed());
     }
 }
 
 class PrintTask implements Task {
-    private String taskID;
+    private static final Logger LOGGER = LogManager.getLogger(PrintTask.class);
 
-    public PrintTask(String taskID) {
-        this.taskID = taskID;
+    private String taskId;
+    private String taskName;
+
+    public PrintTask(String taskName) {
+        this.taskId = Integer.valueOf(UUID.randomUUID().hashCode()).toString();
+        this.taskName = taskName;
     }
 
-    public String getTaskID() {
-        return taskID;
+    public String getTaskId() {
+        return taskId;
     }
 
-    public PrintTask setTaskID(String taskID) {
-        this.taskID = taskID;
+    @Override
+    public String getTaskName() {
+        return taskName;
+    }
+
+    public PrintTask setTaskId(String taskID) {
+        this.taskId = taskID;
+        return this;
+    }
+
+    public PrintTask setTaskName(String taskName) {
+        this.taskName = taskName;
         return this;
     }
 
     @Override
     public TaskOutput run(TaskInput input) {
-        System.out.printf("Task %s Input: %s Output: %s\n", taskID, input.getParameters(), true);
+        // LOGGER.info("Task: {}-{} Input: {} Output: {}", taskName, taskId, input.getParameters(), true);
+        System.out.printf("Thread: %s Task: %s-%s Input: %s Output: %s\n", Thread.currentThread().getId(), taskName, taskId, input.getParameters(), true);
         Map<String, String> output = new LinkedHashMap<>();
-        output.put(taskID + "_Result", Boolean.toString(true));
+        output.put(taskId + "_Result", Boolean.toString(true));
 
-        return new TaskOutput().setSucceed(true).setOutput(output);
+        return new TaskOutput()
+                .setTaskId(taskId)
+                .setSucceed(true)
+                .setOutput(output);
     }
 }

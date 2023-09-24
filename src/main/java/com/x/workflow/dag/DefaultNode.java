@@ -10,7 +10,7 @@ public class DefaultNode<T> implements Node<T> {
     private final Set<Node<T>> children = new HashSet<>();
 
     private final T data;
-    private State state;
+    private volatile State state;
 
     public DefaultNode(T data) {
         this.data = data;
