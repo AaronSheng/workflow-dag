@@ -1,6 +1,6 @@
-package com.x.workflow.exec;
+package com.x.workflow.engine;
 
-public class ExecOutput {
+class ExecOutput {
     private String id;
     private boolean succeed;
     private String message;

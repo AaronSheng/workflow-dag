@@ -1,8 +1,10 @@
-package com.x.workflow.exec;
+package com.x.workflow.engine;
 
 import com.x.workflow.constant.State;
 import com.x.workflow.dag.DAG;
 import com.x.workflow.dag.Node;
+import com.x.workflow.engine.Context;
+import com.x.workflow.engine.ExecOutput;
 import com.x.workflow.task.Task;
 import com.x.workflow.task.TaskInput;
 import com.x.workflow.task.TaskOutput;
@@ -12,49 +14,41 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class DAGExecutor<T extends Task> {
+public class Engine<T extends Task> {
     private static final int DEFAULT_EXEC_CONCURRENT = 1;
-
-    private final DAG<T> graph;
-    private final Set<Node<T>> processed = new HashSet<>();
     private final ExecutorService executor;
 
-    private Map<String, String> parameters;
-
-    public DAGExecutor(DAG<T> graph) {
-        this.graph = graph;
+    public Engine() {
         this.executor = Executors.newFixedThreadPool(DEFAULT_EXEC_CONCURRENT);
     }
 
-    public DAGExecutor(DAG<T> graph, Map<String, String> parameters) {
-        this.graph = graph;
-        this.parameters = parameters;
-        this.executor = Executors.newFixedThreadPool(DEFAULT_EXEC_CONCURRENT);
-    }
-
-    public DAGExecutor(DAG<T> graph, Map<String, String> parameters, int concurrent) {
-        this.graph = graph;
-        this.parameters = parameters;
+    public Engine(int concurrent) {
         this.executor = Executors.newFixedThreadPool(concurrent);
     }
 
-    public DAGExecutor(DAG<T> graph, Map<String, String> parameters, ExecutorService executor) {
-        this.graph = graph;
-        this.parameters = parameters;
+    public Engine(ExecutorService executor) {
         this.executor = executor;
     }
 
-    public ExecOutput execute() {
-        graph.setState(State.RUNNING);
-
-        ExecOutput result = doExecute(graph.getAllNodes());
-        result.setId(graph.getId());
-
-        graph.setState(result.isSucceed() ? State.SUCCEED : State.FAILED);
-        return result;
+    public DAG<T> load(String dag) {
+        return null;
     }
 
-    private ExecOutput doExecute(Set<Node<T>> nodes) {
+    public Result execute(DAG<T> graph, Map<String, String> parameters) {
+        Context<T> context = new Context<>(graph, parameters);
+        ExecOutput output = doExecute(graph.getAllNodes(), context);
+
+        return new Result()
+                .setSucceed(output.isSucceed())
+                .setException(output.getException())
+                .setMessage(output.getMessage())
+                .setOutput(context.getParameters());
+    }
+
+    private ExecOutput doExecute(Set<Node<T>> nodes, Context<T> context) {
+        Set<Node<T>> processed = context.getProcessed();
+        Map<String, String> parameters = context.getParameters();
+
         // pick up can execute node
         List<Node<T>> canExecuteNodeList = new ArrayList<>();
         Map<String, Node<T>> taskToNodeMap = new HashMap<>();
@@ -69,7 +63,7 @@ public class DAGExecutor<T extends Task> {
         List<Future<TaskOutput>> futureList = new ArrayList<>();
         for (Node<T> node : canExecuteNodeList) {
             Future<TaskOutput> future = executor.submit(() -> {
-                return doExecute(node);
+                return doExecute(node, context);
             });
             futureList.add(future);
         }
@@ -88,13 +82,12 @@ public class DAGExecutor<T extends Task> {
 
             // process output
             parameters.putAll(output.getOutput());
-
             if (!output.isSucceed()) {
                 return new ExecOutput().setSucceed(false).setMessage(output.getMessage());
             }
 
             // process children
-            ExecOutput execOutput = doExecute(node.getChildren());
+            ExecOutput execOutput = doExecute(node.getChildren(), context);
             if (!execOutput.isSucceed()) {
                 return execOutput;
             }
@@ -103,7 +96,7 @@ public class DAGExecutor<T extends Task> {
         return new ExecOutput().setSucceed(true);
     }
 
-    private TaskOutput doExecute(Node<T> node) {
+    private TaskOutput doExecute(Node<T> node, Context<T> context) {
         Task task = node.getData();
         node.setState(State.RUNNING);
 
@@ -111,7 +104,7 @@ public class DAGExecutor<T extends Task> {
         output.setTaskId(task.getTaskId());
 
         try {
-            output = task.run(new TaskInput().setParameters(this.parameters));
+            output = task.run(new TaskInput().setParameters(context.getParameters()));
         } catch (Exception e) {
             output.setSucceed(false);
             output.setException(e);
