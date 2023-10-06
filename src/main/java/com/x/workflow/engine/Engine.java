@@ -21,7 +21,7 @@ import java.util.concurrent.Future;
 public class Engine<T extends Task> {
     private static final int DEFAULT_EXEC_CONCURRENT = 1;
     private final ExecutorService executor;
-    private final Map<String, Class<T>> taskMapping = new HashMap<>();
+    private final Map<String, T> taskMapping = new HashMap<>();
 
     public Engine() {
         this.executor = Executors.newFixedThreadPool(DEFAULT_EXEC_CONCURRENT);
@@ -35,8 +35,8 @@ public class Engine<T extends Task> {
         this.executor = executor;
     }
 
-    public void register(String taskName, Class<T> clazz) {
-        taskMapping.put(taskName, clazz);
+    public void register(T task) {
+        taskMapping.put(task.getTaskName(), task);
     }
 
     public DAG<T> load(String dag) {
@@ -51,19 +51,12 @@ public class Engine<T extends Task> {
         // parse node
         Map<String, Node<T>> nodeMapping = new HashMap<>();
         for (NodeVO nodeVO : dagDO.getNodes()) {
-            Class<T> taskClazz = taskMapping.get(nodeVO.getTaskName());
-            if (taskClazz == null) {
+            T task = taskMapping.get(nodeVO.getTaskName());
+            if (task == null) {
                 throw new RuntimeException(String.format("Task %s Not Found", nodeVO.getTaskName()));
             }
 
-            T taskInstance;
-            try {
-                taskInstance = taskClazz.newInstance();
-            } catch (Throwable t) {
-                throw new RuntimeException(t);
-            }
-
-            Node<T> node = new DefaultNode<>(nodeVO.getId(), taskInstance);
+            Node<T> node = new DefaultNode<>(nodeVO.getId(), task);
             nodeMapping.put(node.getId(), node);
         }
 
@@ -89,7 +82,7 @@ public class Engine<T extends Task> {
     public Result execute(DAG<T> graph, Map<String, String> parameters) {
         if (!graph.validate()) {
             return new Result().setSucceed(false)
-                    .setMessage("graph is circled");
+                    .setMessage("Graph Is Circled");
         }
 
         Context<T> context = new Context<>(graph, parameters);
@@ -108,9 +101,9 @@ public class Engine<T extends Task> {
 
         // pick up can execute node
         List<Node<T>> canExecuteNodeList = new ArrayList<>();
-        Map<String, Node<T>> taskToNodeMap = new HashMap<>();
+        Map<String, Node<T>> nodeMap = new HashMap<>();
         for (Node<T> node : nodes) {
-            taskToNodeMap.put(node.getData().getTaskId(), node);
+            nodeMap.put(node.getId(), node);
             if (!processed.contains(node) && processed.containsAll(node.getParents())) {
                 canExecuteNodeList.add(node);
             }
@@ -134,7 +127,7 @@ public class Engine<T extends Task> {
                 throw new RuntimeException(t);
             }
 
-            Node<T> node = taskToNodeMap.get(output.getTaskId());
+            Node<T> node = nodeMap.get(output.getTaskId());
             processed.add(node);
 
             // process output
@@ -157,10 +150,11 @@ public class Engine<T extends Task> {
         Task task = node.getData();
 
         TaskOutput output = new TaskOutput();
-        output.setTaskId(task.getTaskId());
+        output.setSucceed(true);
+        output.setTaskId(node.getId());
 
         try {
-            output = task.run(new TaskInput().setParameters(context.getParameters()));
+            output = task.run(new TaskInput().setTaskId(node.getId()).setParameters(context.getParameters()));
         } catch (Exception e) {
             output.setSucceed(false);
             output.setException(e);

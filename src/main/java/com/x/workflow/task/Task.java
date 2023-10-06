@@ -2,7 +2,7 @@ package com.x.workflow.task;
 
 public interface Task {
 
-    String getTaskId();
+    public String getTaskName();
 
     TaskOutput run(TaskInput input);
 }

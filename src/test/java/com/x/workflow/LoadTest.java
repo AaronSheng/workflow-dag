@@ -3,7 +3,6 @@ package com.x.workflow;
 import com.x.workflow.dag.DAG;
 import com.x.workflow.engine.Engine;
 import com.x.workflow.engine.Result;
-import com.x.workflow.task.Task;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +32,8 @@ public class LoadTest {
                 "}";
 
         Engine<PrintTask> engine = new Engine<>();
-        engine.register(PrintTask.getTaskName(), PrintTask.class);
+        PrintTask printTask = new PrintTask();
+        engine.register(printTask);
 
         DAG<PrintTask> graph = engine.load(dag);
 

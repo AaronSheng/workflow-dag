@@ -60,6 +60,7 @@ public class DefaultDAG<T> implements DAG<T> {
                 return false;
             }
         }
+        visited.remove(root.getId());
 
         return true;
     }
