@@ -1,7 +1,5 @@
 package com.x.workflow.dag;
 
-import com.x.workflow.constant.State;
-
 import java.util.HashSet;
 import java.util.Set;
 
@@ -9,12 +7,12 @@ public class DefaultNode<T> implements Node<T> {
     private final Set<Node<T>> parents = new HashSet<>();
     private final Set<Node<T>> children = new HashSet<>();
 
-    private final T data;
-    private volatile State state;
+    private String id;
+    private T data;
 
-    public DefaultNode(T data) {
+    public DefaultNode(String id, T data) {
+        this.id = id;
         this.data = data;
-        this.state = State.INIT;
     }
 
     @Override
@@ -38,13 +36,18 @@ public class DefaultNode<T> implements Node<T> {
     }
 
     @Override
-    public State getState() {
-        return state;
+    public String getId() {
+        return id;
     }
 
     @Override
-    public void setState(State state) {
-        this.state = state;
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    @Override
+    public void setData(T data) {
+        this.data = data;
     }
 
     @Override

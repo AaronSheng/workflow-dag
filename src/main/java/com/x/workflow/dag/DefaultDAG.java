@@ -1,18 +1,12 @@
 package com.x.workflow.dag;
 
-import com.x.workflow.constant.State;
-
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class DefaultDAG<T> implements DAG<T> {
     private final Set<Node<T>> nodes = new HashSet<>();
-    private State state;
-    private String id;
+    private final String id;
 
     public DefaultDAG() {
-        this.state = State.INIT;
         this.id = UUID.randomUUID().toString();
     }
 
@@ -33,13 +27,41 @@ public class DefaultDAG<T> implements DAG<T> {
     }
 
     @Override
-    public void setState(State state) {
-        this.state = state;
+    public boolean validate() {
+        Node<T> root = null;
+        for (Node<T> node : nodes) {
+            if (node.getParents().isEmpty()) {
+                root = node;
+                break;
+            }
+        }
+        if (root == null) {
+            return false;
+        }
+
+        Map<String, Node<T>> visited = new HashMap<>();
+        return dfs(root, visited);
     }
 
-    @Override
-    public State getState() {
-        return state;
+    private boolean dfs(Node<T> root, Map<String, Node<T>> visited) {
+        if (root == null) {
+            return true;
+        }
+
+        visited.put(root.getId(), root);
+        for (Node<T> child : root.getChildren()) {
+            if (visited.containsKey(child.getId())) {
+                System.out.printf("Node: %s is circled\n", child.getId());
+                return false;
+            }
+
+            visited.put(child.getId(), child);
+            if (!dfs(child, visited)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override

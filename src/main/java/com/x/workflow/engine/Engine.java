@@ -1,13 +1,17 @@
 package com.x.workflow.engine;
 
-import com.x.workflow.constant.State;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.x.workflow.config.DAGVO;
+import com.x.workflow.config.EdgeVO;
+import com.x.workflow.config.NodeVO;
 import com.x.workflow.dag.DAG;
+import com.x.workflow.dag.DefaultDAG;
+import com.x.workflow.dag.DefaultNode;
 import com.x.workflow.dag.Node;
-import com.x.workflow.engine.Context;
-import com.x.workflow.engine.ExecOutput;
 import com.x.workflow.task.Task;
 import com.x.workflow.task.TaskInput;
 import com.x.workflow.task.TaskOutput;
+import com.x.workflow.util.JsonUtil;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -17,6 +21,7 @@ import java.util.concurrent.Future;
 public class Engine<T extends Task> {
     private static final int DEFAULT_EXEC_CONCURRENT = 1;
     private final ExecutorService executor;
+    private final Map<String, Class<T>> taskMapping = new HashMap<>();
 
     public Engine() {
         this.executor = Executors.newFixedThreadPool(DEFAULT_EXEC_CONCURRENT);
@@ -30,11 +35,63 @@ public class Engine<T extends Task> {
         this.executor = executor;
     }
 
+    public void register(String taskName, Class<T> clazz) {
+        taskMapping.put(taskName, clazz);
+    }
+
     public DAG<T> load(String dag) {
-        return null;
+        DAGVO dagDO = JsonUtil.parse(dag, new TypeReference<DAGVO>(){});
+        if (dagDO.getEdges() == null || dagDO.getEdges().isEmpty()) {
+            throw new RuntimeException("Empty Edges");
+        }
+        if (dagDO.getNodes() == null || dagDO.getNodes().isEmpty()) {
+            throw new RuntimeException("Empty Nodes");
+        }
+
+        // parse node
+        Map<String, Node<T>> nodeMapping = new HashMap<>();
+        for (NodeVO nodeVO : dagDO.getNodes()) {
+            Class<T> taskClazz = taskMapping.get(nodeVO.getTaskName());
+            if (taskClazz == null) {
+                throw new RuntimeException(String.format("Task %s Not Found", nodeVO.getTaskName()));
+            }
+
+            T taskInstance;
+            try {
+                taskInstance = taskClazz.newInstance();
+            } catch (Throwable t) {
+                throw new RuntimeException(t);
+            }
+
+            Node<T> node = new DefaultNode<>(nodeVO.getId(), taskInstance);
+            nodeMapping.put(node.getId(), node);
+        }
+
+        // build edges
+        DAG<T> graph = new DefaultDAG<>();
+        for (EdgeVO edgeVO : dagDO.getEdges()) {
+            Node<T> from = nodeMapping.get(edgeVO.getFrom());
+            Node<T> to = nodeMapping.get(edgeVO.getTo());
+            if (from == null || to == null) {
+                throw new RuntimeException(String.format("Node %s or %s Not Found", edgeVO.getFrom(), edgeVO.getTo()));
+            }
+            graph.addEdge(from, to);
+        }
+
+        // validate dag
+        if (!graph.validate()) {
+            throw new RuntimeException("Dag Is Invalid");
+        }
+
+        return graph;
     }
 
     public Result execute(DAG<T> graph, Map<String, String> parameters) {
+        if (!graph.validate()) {
+            return new Result().setSucceed(false)
+                    .setMessage("graph is circled");
+        }
+
         Context<T> context = new Context<>(graph, parameters);
         ExecOutput output = doExecute(graph.getAllNodes(), context);
 
@@ -98,7 +155,6 @@ public class Engine<T extends Task> {
 
     private TaskOutput doExecute(Node<T> node, Context<T> context) {
         Task task = node.getData();
-        node.setState(State.RUNNING);
 
         TaskOutput output = new TaskOutput();
         output.setTaskId(task.getTaskId());
@@ -108,8 +164,6 @@ public class Engine<T extends Task> {
         } catch (Exception e) {
             output.setSucceed(false);
             output.setException(e);
-        } finally {
-            node.setState(output.isSucceed() ? State.SUCCEED : State.FAILED);
         }
 
         return output;

@@ -11,9 +11,11 @@ public interface Node<T> {
     void addChildren(Node<T> child);
     void addParent(Node<T> parent);
 
-    // build exec state
-    State getState();
-    void setState(State state);
+    String getId();
+
+    void setId(String id);
+
+    void setData(T data);
 
     T getData();
 }

@@ -8,26 +8,26 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 
 public class PrintTask implements Task {
     private static final Logger LOGGER = LogManager.getLogger(PrintTask.class);
+    private static final String TASK_NAME = "PrintTask";
 
     private String taskId;
-    private String taskName;
 
-    public PrintTask(String taskName) {
-        this.taskId = Integer.valueOf(UUID.randomUUID().hashCode()).toString();
-        this.taskName = taskName;
+    public PrintTask() {
+    }
+
+    public PrintTask(String id) {
+        this.taskId = id;
     }
 
     public String getTaskId() {
         return taskId;
     }
 
-    @Override
-    public String getTaskName() {
-        return taskName;
+    public static String getTaskName() {
+        return TASK_NAME;
     }
 
     public PrintTask setTaskId(String taskID) {
@@ -35,15 +35,10 @@ public class PrintTask implements Task {
         return this;
     }
 
-    public PrintTask setTaskName(String taskName) {
-        this.taskName = taskName;
-        return this;
-    }
-
     @Override
     public TaskOutput run(TaskInput input) {
         // LOGGER.info("Task: {}-{} Input: {} Output: {}", taskName, taskId, input.getParameters(), true);
-        System.out.printf("Thread: %s Task: %s-%s Output: %s\n", Thread.currentThread().getId(), taskName, taskId, true);
+        System.out.printf("Thread: %s Task: %s-%s Output: %s\n", Thread.currentThread().getId(), TASK_NAME, taskId, true);
         Map<String, String> output = new LinkedHashMap<>();
         output.put(taskId + "_Result", Boolean.toString(true));
 
