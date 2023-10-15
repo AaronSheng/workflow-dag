@@ -9,25 +9,25 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-class Context<T extends Task> {
-    private final DAG<T> graph;
-    private final Set<Node<T>> processed = new HashSet<>();
+class Context {
+    private final DAG<Task> graph;
+    private final Set<Node<Task>> processed = new HashSet<>();
     private final Map<String, String> parameters = new HashMap<>();
 
-    public Context(DAG<T> graph) {
+    public Context(DAG<Task> graph) {
         this.graph = graph;
     }
 
-    public Context(DAG<T> graph, Map<String, String> parameters) {
+    public Context(DAG<Task> graph, Map<String, String> parameters) {
         this.graph = graph;
         this.parameters.putAll(parameters);
     }
 
-    public DAG<T> getGraph() {
+    public DAG<Task> getGraph() {
         return graph;
     }
 
-    public Set<Node<T>> getProcessed() {
+    public Set<Node<Task>> getProcessed() {
         return processed;
     }
 

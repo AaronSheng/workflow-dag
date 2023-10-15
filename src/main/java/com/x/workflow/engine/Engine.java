@@ -12,16 +12,20 @@ import com.x.workflow.task.Task;
 import com.x.workflow.task.TaskInput;
 import com.x.workflow.task.TaskOutput;
 import com.x.workflow.util.JsonUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class Engine<T extends Task> {
+public class Engine {
+    private static final Logger LOGGER = LogManager.getLogger(Engine.class);
+
     private static final int DEFAULT_EXEC_CONCURRENT = 1;
     private final ExecutorService executor;
-    private final Map<String, T> taskMapping = new HashMap<>();
+    private final Map<String, Task> taskMapping = new HashMap<>();
 
     public Engine() {
         this.executor = Executors.newFixedThreadPool(DEFAULT_EXEC_CONCURRENT);
@@ -35,36 +39,38 @@ public class Engine<T extends Task> {
         this.executor = executor;
     }
 
-    public void register(T task) {
+    public <T extends Task> void register(T task) {
         taskMapping.put(task.getTaskName(), task);
     }
 
-    public DAG<T> load(String dag) {
+    public DAG<Task> load(String dag) {
         DAGVO dagDO = JsonUtil.parse(dag, new TypeReference<DAGVO>(){});
         if (dagDO.getEdges() == null || dagDO.getEdges().isEmpty()) {
+            LOGGER.warn("Config Attr:edges Is Empty");
             throw new RuntimeException("Empty Edges");
         }
         if (dagDO.getNodes() == null || dagDO.getNodes().isEmpty()) {
+            LOGGER.warn("Config Attr:nodes Is Empty");
             throw new RuntimeException("Empty Nodes");
         }
 
         // parse node
-        Map<String, Node<T>> nodeMapping = new HashMap<>();
+        Map<String, Node<Task>> nodeMapping = new HashMap<>();
         for (NodeVO nodeVO : dagDO.getNodes()) {
-            T task = taskMapping.get(nodeVO.getTaskName());
+            Task task = taskMapping.get(nodeVO.getTaskName());
             if (task == null) {
                 throw new RuntimeException(String.format("Task %s Not Found", nodeVO.getTaskName()));
             }
 
-            Node<T> node = new DefaultNode<>(nodeVO.getId(), task);
+            Node<Task> node = new DefaultNode<>(nodeVO.getId(), task);
             nodeMapping.put(node.getId(), node);
         }
 
         // build edges
-        DAG<T> graph = new DefaultDAG<>();
+        DAG<Task> graph = new DefaultDAG<>();
         for (EdgeVO edgeVO : dagDO.getEdges()) {
-            Node<T> from = nodeMapping.get(edgeVO.getFrom());
-            Node<T> to = nodeMapping.get(edgeVO.getTo());
+            Node<Task> from = nodeMapping.get(edgeVO.getFrom());
+            Node<Task> to = nodeMapping.get(edgeVO.getTo());
             if (from == null || to == null) {
                 throw new RuntimeException(String.format("Node %s or %s Not Found", edgeVO.getFrom(), edgeVO.getTo()));
             }
@@ -79,30 +85,30 @@ public class Engine<T extends Task> {
         return graph;
     }
 
-    public Result execute(DAG<T> graph, Map<String, String> parameters) {
+    public Result execute(DAG<Task> graph, Map<String, String> parameters) {
         if (!graph.validate()) {
             return new Result().setSucceed(false)
                     .setMessage("Graph Is Circled");
         }
 
-        Context<T> context = new Context<>(graph, parameters);
-        ExecOutput output = doExecute(graph.getAllNodes(), context);
+        Context context = new Context(graph, parameters);
+        InnerResult result = doExecute(graph.getAllNodes(), context);
 
         return new Result()
-                .setSucceed(output.isSucceed())
-                .setException(output.getException())
-                .setMessage(output.getMessage())
+                .setSucceed(result.isSucceed())
+                .setException(result.getException())
+                .setMessage(result.getMessage())
                 .setOutput(context.getParameters());
     }
 
-    private ExecOutput doExecute(Set<Node<T>> nodes, Context<T> context) {
-        Set<Node<T>> processed = context.getProcessed();
+    private InnerResult doExecute(Set<Node<Task>> nodes, Context context) {
+        Set<Node<Task>> processed = context.getProcessed();
         Map<String, String> parameters = context.getParameters();
 
         // pick up can execute node
-        List<Node<T>> canExecuteNodeList = new ArrayList<>();
-        Map<String, Node<T>> nodeMap = new HashMap<>();
-        for (Node<T> node : nodes) {
+        List<Node<Task>> canExecuteNodeList = new ArrayList<>();
+        Map<String, Node<Task>> nodeMap = new HashMap<>();
+        for (Node<Task> node : nodes) {
             nodeMap.put(node.getId(), node);
             if (!processed.contains(node) && processed.containsAll(node.getParents())) {
                 canExecuteNodeList.add(node);
@@ -111,7 +117,7 @@ public class Engine<T extends Task> {
 
         // submit can execute node
         List<Future<TaskOutput>> futureList = new ArrayList<>();
-        for (Node<T> node : canExecuteNodeList) {
+        for (Node<Task> node : canExecuteNodeList) {
             Future<TaskOutput> future = executor.submit(() -> {
                 return doExecute(node, context);
             });
@@ -127,26 +133,26 @@ public class Engine<T extends Task> {
                 throw new RuntimeException(t);
             }
 
-            Node<T> node = nodeMap.get(output.getTaskId());
+            Node<Task> node = nodeMap.get(output.getTaskId());
             processed.add(node);
 
             // process output
             parameters.putAll(output.getOutput());
             if (!output.isSucceed()) {
-                return new ExecOutput().setSucceed(false).setMessage(output.getMessage());
+                return new InnerResult().setSucceed(false).setMessage(output.getMessage());
             }
 
             // process children
-            ExecOutput execOutput = doExecute(node.getChildren(), context);
-            if (!execOutput.isSucceed()) {
-                return execOutput;
+            InnerResult result = doExecute(node.getChildren(), context);
+            if (!result.isSucceed()) {
+                return result;
             }
         }
 
-        return new ExecOutput().setSucceed(true);
+        return new InnerResult().setSucceed(true);
     }
 
-    private TaskOutput doExecute(Node<T> node, Context<T> context) {
+    private TaskOutput doExecute(Node<Task> node, Context context) {
         Task task = node.getData();
 
         TaskOutput output = new TaskOutput();

@@ -3,12 +3,16 @@ package com.x.workflow;
 import com.x.workflow.dag.DAG;
 import com.x.workflow.engine.Engine;
 import com.x.workflow.engine.Result;
+import com.x.workflow.task.Task;
+import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class LoadTest {
-    public static void main(String[] args) {
+
+    @Test
+    public void testLoad() {
         String dag = "{\n" +
                 "    \"nodes\":[\n" +
                 "        {\n" +
@@ -18,12 +22,32 @@ public class LoadTest {
                 "        {\n" +
                 "            \"id\":\"2\",\n" +
                 "            \"task_name\":\"PrintTask\"\n" +
+                "        },\n" +
+                "        {\n" +
+                "            \"id\":\"3\",\n" +
+                "            \"task_name\":\"PrintTask\"\n" +
+                "        },\n" +
+                "        {\n" +
+                "            \"id\":\"4\",\n" +
+                "            \"task_name\":\"PrintTask\"\n" +
                 "        }\n" +
                 "    ],\n" +
                 "    \"edges\":[\n" +
                 "        {\n" +
                 "            \"from\":\"1\",\n" +
                 "            \"to\":\"2\"\n" +
+                "        },\n" +
+                "        {\n" +
+                "            \"from\":\"1\",\n" +
+                "            \"to\":\"3\"\n" +
+                "        },\n" +
+                "        {\n" +
+                "            \"from\":\"2\",\n" +
+                "            \"to\":\"4\"\n" +
+                "        },\n" +
+                "        {\n" +
+                "            \"from\":\"3\",\n" +
+                "            \"to\":\"4\"\n" +
                 "        }\n" +
                 "    ],\n" +
                 "    \"parameters\":{\n" +
@@ -31,11 +55,13 @@ public class LoadTest {
                 "    }\n" +
                 "}";
 
-        Engine<PrintTask> engine = new Engine<>();
+        System.out.println(dag);
+
+        Engine engine = new Engine();
         PrintTask printTask = new PrintTask();
         engine.register(printTask);
 
-        DAG<PrintTask> graph = engine.load(dag);
+        DAG<Task> graph = engine.load(dag);
 
         Map<String, String> parameters = new HashMap<>();
         parameters.put("FlowID", graph.getId());

@@ -1,25 +1,15 @@
 package com.x.workflow.engine;
 
-class ExecOutput {
-    private String id;
+class InnerResult {
     private boolean succeed;
     private String message;
     private Exception exception;
-
-    public String getId() {
-        return id;
-    }
-
-    public ExecOutput setId(String id) {
-        this.id = id;
-        return this;
-    }
 
     public boolean isSucceed() {
         return succeed;
     }
 
-    public ExecOutput setSucceed(boolean succeed) {
+    public InnerResult setSucceed(boolean succeed) {
         this.succeed = succeed;
         return this;
     }
@@ -28,7 +18,7 @@ class ExecOutput {
         return message;
     }
 
-    public ExecOutput setMessage(String message) {
+    public InnerResult setMessage(String message) {
         this.message = message;
         return this;
     }
@@ -37,7 +27,7 @@ class ExecOutput {
         return exception;
     }
 
-    public ExecOutput setException(Exception exception) {
+    public InnerResult setException(Exception exception) {
         this.exception = exception;
         return this;
     }

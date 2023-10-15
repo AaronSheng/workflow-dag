@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Configuration status="off" monitorInterval="1800">
+    <properties>
+        <property name="LOG_HOME">logs</property>
+        <property name="ERROR_LOG_FILE_NAME">error</property>
+    </properties>
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout>
+                <Pattern>%highlight{%level} - %t - [%d] - [%c:%method] - %msg%n</Pattern>
+            </PatternLayout>
+        </Console>
+
+        <RollingFile name="FILE"
+                     fileName="${LOG_HOME}/log.log"
+                     filePattern="${LOG_HOME}/log-%d{yy-MM-dd HH:mm:ss}.log.gz">
+            <PatternLayout>
+                <Pattern>%highlight{%level} - %t - [%d] - [%c:%method] - %msg%n</Pattern>
+            </PatternLayout>
+            <Policies>
+                <CronTriggeringPolicy schedule="1 * * * * ?" evaluateOnStartup="true"/>
+            </Policies>
+        </RollingFile>
+
+        <Console name="FILE" target="SYSTEM_OUT">
+            <PatternLayout>
+                <Pattern>%highlight{%level} - %t - [%d] - [%c:%method] - %msg%n</Pattern>
+            </PatternLayout>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="DEBUG" level="debug" additivity="false">
+            <appender-ref ref="Console" />
+        </Logger>
+
+        <root level="info" additivity="false">
+            <appender-ref ref="FILE"/>
+        </root>
+    </Loggers>
+</Configuration>

@@ -1,8 +1,13 @@
 package com.x.workflow.dag;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.*;
 
 public class DefaultDAG<T> implements DAG<T> {
+    private static final Logger LOGGER = LogManager.getLogger(DefaultDAG.class);
+
     private final Set<Node<T>> nodes = new HashSet<>();
     private final String id;
 
@@ -51,7 +56,7 @@ public class DefaultDAG<T> implements DAG<T> {
         visited.put(root.getId(), root);
         for (Node<T> child : root.getChildren()) {
             if (visited.containsKey(child.getId())) {
-                System.out.printf("Node: %s is circled\n", child.getId());
+                LOGGER.warn("Node: {} is circled", child.getId());
                 return false;
             }
 
