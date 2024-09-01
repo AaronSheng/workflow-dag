@@ -43,43 +43,85 @@ public class Engine {
         taskMapping.put(task.getTaskName(), task);
     }
 
+    /**
+     * 根据字符串描述加载并构建一个有向无环图（DAG）
+     *
+     * @param dag 描述DAG的字符串，具体格式根据实际情况定义
+     * @return 返回构建好的DAG实例
+     * @throws RuntimeException 如果DAG验证失败，即图中存在循环依赖
+     */
     public DAG<Task> load(String dag) {
-        DAGVO dagDO = JsonUtil.parse(dag, new TypeReference<DAGVO>(){});
-        if (dagDO.getEdges() == null || dagDO.getEdges().isEmpty()) {
-            LOGGER.warn("Config Attr:edges Is Empty");
+        // 解析字符串描述，生成DAG的初步表示
+        DAGVO dagVO = parse(dag);
+
+        // 构建实际的DAG对象
+        DAG<Task> graph = buildGraph(dagVO);
+
+        // 验证图的正确性，确保其为一个有效的有向无环图
+        // 如果验证失败，抛出异常，提示DAG构建失败
+        if (!graph.validate()) {
+            throw new RuntimeException("Dag Is Invalid");
+        }
+
+        return graph;
+    }
+
+    /**
+     * 解析字符串为DAGVO对象
+     *
+     * @param dag JSON格式的字符串，表示一个DAG（有向无环图）的配置
+     * @return 解析后的DAGVO对象
+     * @throws RuntimeException 如果DAG配置中的edges或nodes为空，则抛出运行时异常
+     */
+    private DAGVO parse(String dag) {
+        // 将JSON字符串解析为DAGVO对象
+        DAGVO dagVO = JsonUtil.parse(dag, new TypeReference<DAGVO>(){});
+
+        // 检查edges是否为空，如果为空则记录警告日志并抛出异常
+        if (dagVO.getEdges() == null || dagVO.getEdges().isEmpty()) {
+            LOGGER.warn("Config Attr: edges Is Empty");
             throw new RuntimeException("Empty Edges");
         }
-        if (dagDO.getNodes() == null || dagDO.getNodes().isEmpty()) {
-            LOGGER.warn("Config Attr:nodes Is Empty");
+
+        // 检查nodes是否为空，如果为空则记录警告日志并抛出异常
+        if (dagVO.getNodes() == null || dagVO.getNodes().isEmpty()) {
+            LOGGER.warn("Config Attr: nodes Is Empty");
             throw new RuntimeException("Empty Nodes");
         }
 
-        // parse node
+        return dagVO;
+    }
+
+    /**
+     * 根据给定的DAGVO对象构建任务依赖图
+     *
+     * @param dagVO 描述依赖图的VO对象，包含了节点和边的信息
+     * @return 构建完成的任务依赖图对象
+     * @throws RuntimeException 如果任务或节点不存在，则抛出运行时异常
+     */
+    private DAG<Task> buildGraph(DAGVO dagVO) {
+        // 创建节点到任务的映射，用于后续快速查找节点
         Map<String, Node<Task>> nodeMapping = new HashMap<>();
-        for (NodeVO nodeVO : dagDO.getNodes()) {
+        for (NodeVO nodeVO : dagVO.getNodes()) {
+            // 根据节点的任务名称获取任务，如果任务不存在则抛出异常
             Task task = taskMapping.get(nodeVO.getTaskName());
             if (task == null) {
                 throw new RuntimeException(String.format("Task %s Not Found", nodeVO.getTaskName()));
             }
-
             Node<Task> node = new DefaultNode<>(nodeVO.getId(), task);
             nodeMapping.put(node.getId(), node);
         }
 
-        // build edges
+        // 创建一个空的任务依赖图
         DAG<Task> graph = new DefaultDAG<>();
-        for (EdgeVO edgeVO : dagDO.getEdges()) {
+        for (EdgeVO edgeVO : dagVO.getEdges()) {
+            // 通过边的起始和结束节点ID从节点映射中获取对应的节点
             Node<Task> from = nodeMapping.get(edgeVO.getFrom());
             Node<Task> to = nodeMapping.get(edgeVO.getTo());
             if (from == null || to == null) {
                 throw new RuntimeException(String.format("Node %s or %s Not Found", edgeVO.getFrom(), edgeVO.getTo()));
             }
             graph.addEdge(from, to);
-        }
-
-        // validate dag
-        if (!graph.validate()) {
-            throw new RuntimeException("Dag Is Invalid");
         }
 
         return graph;
@@ -118,9 +160,7 @@ public class Engine {
         // submit can execute node
         List<Future<TaskOutput>> futureList = new ArrayList<>();
         for (Node<Task> node : canExecuteNodeList) {
-            Future<TaskOutput> future = executor.submit(() -> {
-                return doExecute(node, context);
-            });
+            Future<TaskOutput> future = executor.submit(() -> doExecute(node, context));
             futureList.add(future);
         }
 
@@ -128,21 +168,21 @@ public class Engine {
         for (Future<TaskOutput> future : futureList) {
             TaskOutput output;
             try {
+                // execute current node
                 output = future.get();
+                if (!output.isSucceed()) {
+                    return new InnerResult().setSucceed(false).setMessage(output.getMessage());
+                }
             } catch (Throwable t) {
                 throw new RuntimeException(t);
             }
 
+            // process node output
             Node<Task> node = nodeMap.get(output.getTaskId());
             processed.add(node);
-
-            // process output
             parameters.putAll(output.getOutput());
-            if (!output.isSucceed()) {
-                return new InnerResult().setSucceed(false).setMessage(output.getMessage());
-            }
 
-            // process children
+            // process children node
             InnerResult result = doExecute(node.getChildren(), context);
             if (!result.isSucceed()) {
                 return result;
@@ -160,7 +200,10 @@ public class Engine {
         output.setTaskId(node.getId());
 
         try {
-            output = task.run(new TaskInput().setTaskId(node.getId()).setParameters(context.getParameters()));
+            TaskInput input = new TaskInput()
+                    .setTaskId(node.getId())
+                    .setParameters(context.getParameters());
+            output = task.run(input);
         } catch (Exception e) {
             output.setSucceed(false);
             output.setException(e);

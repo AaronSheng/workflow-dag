@@ -22,7 +22,7 @@ public class PrintTask implements Task {
 
     @Override
     public TaskOutput run(TaskInput input) {
-        // LOGGER.info("Task: {}-{} Input: {} Output: {}", taskName, taskId, input.getParameters(), true);
+        LOGGER.info("Task: {}-{} Input: {} Output: {}", getTaskName(), input.getTaskId(), input.getParameters(), true);
         String taskId = input.getTaskId();
         System.out.printf("Thread: %s Task: %s-%s Output: %s\n", Thread.currentThread().getId(), getTaskName(), taskId, true);
         Map<String, String> output = new LinkedHashMap<>();
