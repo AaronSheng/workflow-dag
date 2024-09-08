@@ -1,12 +1,20 @@
-package com.x.workflow.task;
+package com.x.workflow.task.model;
 
 import java.util.Map;
 
 public class TaskOutput {
     private String taskId;
+
+    // 标记任务是否满足条件
+    private boolean matched;
+
+    // 标记任务是否成功
     private boolean succeed;
+
     private String message;
+
     private Exception exception;
+
     private Map<String, String> output;
 
     public String getTaskId() {
@@ -15,6 +23,15 @@ public class TaskOutput {
 
     public TaskOutput setTaskId(String taskId) {
         this.taskId = taskId;
+        return this;
+    }
+
+    public boolean isMatched() {
+        return matched;
+    }
+
+    public TaskOutput setMatched(boolean matched) {
+        this.matched = matched;
         return this;
     }
 

@@ -1,7 +1,5 @@
 package com.x.workflow.dag;
 
-import com.x.workflow.constant.State;
-
 import java.util.Set;
 
 public interface Node<T> {
@@ -14,6 +12,10 @@ public interface Node<T> {
     String getId();
 
     void setId(String id);
+
+    Condition getCondition();
+
+    void setCondition(Condition condition);
 
     void setData(T data);
 

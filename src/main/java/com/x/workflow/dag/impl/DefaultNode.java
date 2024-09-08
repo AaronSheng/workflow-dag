@@ -1,4 +1,7 @@
-package com.x.workflow.dag;
+package com.x.workflow.dag.impl;
+
+import com.x.workflow.dag.Condition;
+import com.x.workflow.dag.Node;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -8,6 +11,7 @@ public class DefaultNode<T> implements Node<T> {
     private final Set<Node<T>> children = new HashSet<>();
 
     private String id;
+    private Condition condition;
     private T data;
 
     public DefaultNode(String id, T data) {
@@ -43,6 +47,16 @@ public class DefaultNode<T> implements Node<T> {
     @Override
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public Condition getCondition() {
+        return condition;
+    }
+
+    @Override
+    public void setCondition(Condition condition) {
+        this.condition = condition;
     }
 
     @Override

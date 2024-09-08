@@ -1,5 +1,7 @@
-package com.x.workflow.dag;
+package com.x.workflow.dag.impl;
 
+import com.x.workflow.dag.DAG;
+import com.x.workflow.dag.Node;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

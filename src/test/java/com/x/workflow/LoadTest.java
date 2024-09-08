@@ -1,5 +1,6 @@
 package com.x.workflow;
 
+import com.x.workflow.task.impl.PrintTask;
 import com.x.workflow.dag.DAG;
 import com.x.workflow.engine.Engine;
 import com.x.workflow.engine.Result;
@@ -63,7 +64,7 @@ public class LoadTest {
 
         DAG<Task> graph = engine.load(dag);
 
-        Map<String, String> parameters = new HashMap<>();
+        Map<String, Object> parameters = new HashMap<>();
         parameters.put("FlowID", graph.getId());
 
         Result result = engine.execute(graph, parameters);

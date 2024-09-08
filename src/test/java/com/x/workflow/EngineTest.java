@@ -1,8 +1,9 @@
 package com.x.workflow;
 
+import com.x.workflow.task.impl.PrintTask;
 import com.x.workflow.dag.DAG;
-import com.x.workflow.dag.DefaultDAG;
-import com.x.workflow.dag.DefaultNode;
+import com.x.workflow.dag.impl.DefaultDAG;
+import com.x.workflow.dag.impl.DefaultNode;
 import com.x.workflow.dag.Node;
 import com.x.workflow.engine.Engine;
 import com.x.workflow.engine.Result;
@@ -29,6 +30,13 @@ public class EngineTest {
         Node<Task> nodeE = new DefaultNode<>("E", printTask);
         Node<Task> nodeF = new DefaultNode<>("F", printTask);
 
+        /**
+         *    ->B->C
+         *   |      \
+         * A         ->E->F
+         *   \      |
+         *      ->D
+         */
         graph.addEdge(nodeA, nodeB);
         graph.addEdge(nodeB, nodeC);
         graph.addEdge(nodeC, nodeE);
@@ -36,7 +44,7 @@ public class EngineTest {
         graph.addEdge(nodeD, nodeE);
         graph.addEdge(nodeE, nodeF);
 
-        Map<String, String> parameters = new HashMap<>();
+        Map<String, Object> parameters = new HashMap<>();
         parameters.put("FlowID", graph.getId());
 
         Engine engine = new Engine();

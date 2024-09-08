@@ -1,8 +1,8 @@
-package com.x.workflow;
+package com.x.workflow.task.impl;
 
 import com.x.workflow.task.Task;
-import com.x.workflow.task.TaskInput;
-import com.x.workflow.task.TaskOutput;
+import com.x.workflow.task.model.TaskInput;
+import com.x.workflow.task.model.TaskOutput;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -12,9 +12,6 @@ import java.util.Map;
 public class PrintTask implements Task {
     private static final Logger LOGGER = LogManager.getLogger(PrintTask.class);
     private static final String TASK_NAME = "PrintTask";
-
-    public PrintTask() {
-    }
 
     public String getTaskName() {
         return TASK_NAME;

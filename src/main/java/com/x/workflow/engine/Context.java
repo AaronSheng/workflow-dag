@@ -12,13 +12,13 @@ import java.util.Set;
 class Context {
     private final DAG<Task> graph;
     private final Set<Node<Task>> processed = new HashSet<>();
-    private final Map<String, String> parameters = new HashMap<>();
+    private final Map<String, Object> parameters = new HashMap<>();
 
     public Context(DAG<Task> graph) {
         this.graph = graph;
     }
 
-    public Context(DAG<Task> graph, Map<String, String> parameters) {
+    public Context(DAG<Task> graph, Map<String, Object> parameters) {
         this.graph = graph;
         this.parameters.putAll(parameters);
     }
@@ -31,7 +31,7 @@ class Context {
         return processed;
     }
 
-    public Map<String, String> getParameters() {
+    public Map<String, Object> getParameters() {
         return parameters;
     }
 }

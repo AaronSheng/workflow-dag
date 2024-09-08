@@ -6,7 +6,7 @@ public class Result {
     private boolean succeed;
     private String message;
     private Exception exception;
-    private Map<String, String> output;
+    private Map<String, Object> output;
 
     public boolean isSucceed() {
         return succeed;
@@ -35,11 +35,11 @@ public class Result {
         return this;
     }
 
-    public Map<String, String> getOutput() {
+    public Map<String, Object> getOutput() {
         return output;
     }
 
-    public Result setOutput(Map<String, String> output) {
+    public Result setOutput(Map<String, Object> output) {
         this.output = output;
         return this;
     }
