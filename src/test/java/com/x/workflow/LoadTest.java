@@ -68,6 +68,6 @@ public class LoadTest {
         parameters.put("FlowID", graph.getId());
 
         Result result = engine.execute(graph, parameters);
-        System.out.printf("Exec Flow:%s Succeed:%s Output:%s\n", graph.getId(), result.isSucceed(), result.getMessage());
+        System.out.printf("Exec Flow:%s Succeed Flag:%s Output:%s\n", graph.getId(), result.isSucceed(), result.getMessage());
     }
 }
